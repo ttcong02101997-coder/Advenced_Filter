@@ -15,9 +15,10 @@ interface FilterGroupProps {
     onChange: (model: FilterGroupModel) => void
     onRemove?: () => void
     relatedEntities: RelatedEntityOption[]
+    isRelatedContext?: boolean
 }
 
-function FilterGroup({ context, depth = 0, entityName, fields, isRoot = false, model, onChange, onRemove, relatedEntities }: FilterGroupProps) {
+function FilterGroup({ context, depth = 0, entityName, fields, isRoot = false, model, onChange, onRemove, relatedEntities, isRelatedContext = false }: FilterGroupProps) {
     const nextItemId = React.useRef(1)
     const highestItemId = model.items.reduce((highest, item) => Math.max(highest, item.id), 0)
     if (nextItemId.current <= highestItemId) nextItemId.current = highestItemId + 1
@@ -66,18 +67,20 @@ function FilterGroup({ context, depth = 0, entityName, fields, isRoot = false, m
                 fontWeight: 600
             }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                    <Dropdown
-                        value={model.operator.toUpperCase()}
-                        selectedOptions={[model.operator]}
-                        onOptionSelect={(_: React.SyntheticEvent, data: { optionValue?: string }) => (
-                            onChange({ ...model, operator: data.optionValue === 'or' ? 'or' : 'and' })
-                        )}
-                        style={{ width: 88, minWidth: 0 }}
-                        aria-label="Group operator"
-                    >
-                        <Option value="and">AND</Option>
-                        <Option value="or">OR</Option>
-                    </Dropdown>
+                    {!isRelatedContext && (
+                        <Dropdown
+                            value={model.operator.toUpperCase()}
+                            selectedOptions={[model.operator]}
+                            onOptionSelect={(_: React.SyntheticEvent, data: { optionValue?: string }) => (
+                                onChange({ ...model, operator: data.optionValue === 'or' ? 'or' : 'and' })
+                            )}
+                            style={{ width: 88, minWidth: 0 }}
+                            aria-label="Group operator"
+                        >
+                            <Option value="and">AND</Option>
+                            <Option value="or">OR</Option>
+                        </Dropdown>
+                    )}
                     {!isRoot && (
                         <span style={{ color: "#6b7280", fontSize: 10, fontWeight: 600, letterSpacing: "0.06em" }}>
                             GROUP
@@ -129,6 +132,7 @@ function FilterGroup({ context, depth = 0, entityName, fields, isRoot = false, m
                                 onChange={updateItem}
                                 onRemove={() => removeItem(item.id)}
                                 relatedEntities={relatedEntities}
+                                isRelatedContext={isRelatedContext}
                             />
                         ) : (
                             <RelatedEntity
@@ -154,7 +158,7 @@ function FilterGroup({ context, depth = 0, entityName, fields, isRoot = false, m
                         <MenuList>
                             <MenuItem onClick={() => addItem('row')}>Add row</MenuItem>
                             <MenuItem onClick={() => addItem('group')}>Add group</MenuItem>
-                            <MenuItem disabled={!isRoot} onClick={() => addItem('related')}>Add related entity</MenuItem>
+                            <MenuItem disabled={!isRoot && !isRelatedContext} onClick={() => addItem('related')}>Add related entity</MenuItem>
                         </MenuList>
                     </MenuPopover>
                 </Menu>
@@ -326,6 +330,7 @@ function RelatedEntity({ context, model, onChange, onRemove, relatedEntities }: 
                         model={model.group}
                         onChange={(group) => onChange({ ...model, group })}
                         relatedEntities={nestedRelatedEntities}
+                        isRelatedContext
                     />
                 </div>
             )}

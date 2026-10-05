@@ -44,13 +44,18 @@ function FieldCondition({ context, condition, fields, onChange, onRemove }: Fiel
     const fieldKey = condition.fieldName.trim().toLowerCase()
     const selectedField = fields.find((field) => field.logicalName.toLowerCase() === fieldKey)
         ?? fields.find((field) => field.displayName.trim().toLowerCase() === fieldKey)
-    const fieldType = selectedField?.type.toLowerCase() ?? ''
+    const fieldType = selectedField?.type.toLowerCase().replace(/type$/, '') ?? ''
     const isNumber = ['integer', 'bigint', 'decimal', 'double', 'money'].includes(fieldType)
     const isDate = fieldType === 'datetime'
     const isDateOnly = isDate && selectedField?.dateFormat?.toLowerCase() === 'dateonly'
     const isBoolean = fieldType === 'boolean'
     const isChoice = ['picklist', 'state', 'status', 'multiselectpicklist', 'optionset'].includes(fieldType)
     const isLookup = ['lookup', 'owner', 'customer'].includes(fieldType)
+    const selectedBooleanValue = isBoolean && condition.value === '1'
+        ? 'true'
+        : isBoolean && condition.value === '0'
+            ? 'false'
+            : condition.value
     const typedOperators = isNumber || isDate
         ? comparisonOperators
         : isBoolean || isChoice || isLookup
@@ -138,9 +143,11 @@ function FieldCondition({ context, condition, fields, onChange, onRemove }: Fiel
             gridTemplateColumns: "repeat(3, minmax(0, 1fr)) 32px",
             alignItems: "center",
             gap: 8,
-            padding: "10px 8px",
-            marginBottom: 8,
-            backgroundColor: "#ffffff"
+            padding: "10px",
+            margin: 0,
+            backgroundColor: "#ffffff",
+            border: "1px solid #e5e7eb",
+            borderRadius: 4
         }}>
             <Select
                 value={selectedField?.logicalName ?? ''}
@@ -182,30 +189,29 @@ function FieldCondition({ context, condition, fields, onChange, onRemove }: Fiel
                     {condition.valueLabel || condition.value || 'Select a record'}
                 </Button>
             ) : isBoolean || isChoice ? (
-                <Dropdown
-                    placeholder="Select a value"
-                    value={selectedField?.options.find((option) => option.value === condition.value)?.label
-                        ?? (condition.value === 'true' || condition.value === '1'
-                            ? 'Yes'
-                            : condition.value === 'false' || condition.value === '0'
-                                ? 'No'
-                                : undefined)}
-                    selectedOptions={condition.value ? [condition.value] : []}
-                    onOptionSelect={(_: React.SyntheticEvent, data: { optionValue?: string }) => (
-                        updateCondition({ value: data.optionValue ?? '', valueLabel: '' })
-                    )}
+                <Select
+                    value={selectedBooleanValue}
+                    onChange={(event) => updateCondition({ value: event.currentTarget.value, valueLabel: '' })}
                     style={{ width: "100%", minWidth: 0 }}
                     aria-label="Value"
                 >
+                    <option value="" disabled>Select a value</option>
                     {isBoolean ? (
                         <>
-                            <Option value="true">Yes</Option>
-                            <Option value="false">No</Option>
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
                         </>
-                    ) : selectedField?.options.map((option) => (
-                        <Option key={option.value} value={option.value}>{option.label}</Option>
-                    ))}
-                </Dropdown>
+                    ) : (
+                        <>
+                            {condition.value && !selectedField?.options.some((option) => option.value === condition.value) && (
+                                <option value={condition.value}>{condition.value}</option>
+                            )}
+                            {selectedField?.options.map((option) => (
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                        </>
+                    )}
+                </Select>
             ) : (
                 <Input
                     type={isNumber ? 'number' : isDateOnly ? 'date' : isDate ? 'datetime-local' : 'text'}

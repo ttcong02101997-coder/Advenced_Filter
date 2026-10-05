@@ -15,20 +15,24 @@ export interface IAdvancedFilterProps {
 
 function AdvancedFilter({ entityName, fieldProperty, filterModel, onFilterModelChange, onApply, context }: IAdvancedFilterProps) {
     const [currentModel, setCurrentModel] = React.useState(filterModel)
+    const currentModelRef = React.useRef(filterModel)
     const [validationError, setValidationError] = React.useState('')
 
     React.useEffect(() => {
+        currentModelRef.current = filterModel
         setCurrentModel(filterModel)
     }, [entityName, fieldProperty])
 
     const handleModelChange = (model: FilterGroupModel) => {
+        currentModelRef.current = model
         setCurrentModel(model)
         onFilterModelChange(model)
         setValidationError('')
     }
 
     const handleApply = () => {
-        if (hasMissingConditionValue(currentModel)) {
+        const model = currentModelRef.current
+        if (hasMissingConditionValue(model)) {
             setValidationError('Enter a value for each selected field before applying the filter.')
             return
         }

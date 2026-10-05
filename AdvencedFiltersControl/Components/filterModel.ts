@@ -240,44 +240,6 @@ function parseFilterElement(
     return group
 }
 
-function liftRelatedNodes(root: FilterGroupModel): FilterGroupModel {
-    const liftedRelated: RelatedFilterModel[] = []
-
-    const normalizeGroup = (group: FilterGroupModel): FilterGroupModel => {
-        let nextId = 1
-        const items: FilterNode[] = []
-
-        for (const item of group.items) {
-            if (item.kind === 'related') {
-                liftedRelated.push(item)
-                continue
-            }
-
-            if (item.kind === 'group') {
-                const nestedGroup = normalizeGroup(item)
-                if (nestedGroup.items.length) items.push({ ...nestedGroup, id: nextId++ })
-                continue
-            }
-
-            items.push({ ...item, id: nextId++ })
-        }
-
-        return { ...group, items }
-    }
-
-    const normalizedRoot = normalizeGroup(root)
-    let nextRootId = normalizedRoot.items.length + 1
-    const items = [
-        ...normalizedRoot.items,
-        ...liftedRelated.map((related) => ({ ...related, id: nextRootId++ }))
-    ]
-
-    return {
-        ...normalizedRoot,
-        items: items.length ? items : [createCondition(0)]
-    }
-}
-
 export function parseFetchXml(xml: string, expectedEntityName: string): FilterGroupModel | undefined {
     if (!xml.trim()) return undefined
 
@@ -336,5 +298,5 @@ export function parseFetchXml(xml: string, expectedEntityName: string): FilterGr
     }
 
     if (!root.items.length) root.items.push(createCondition(0))
-    return liftRelatedNodes(root)
+    return root
 }

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest>
-  <control namespace="AdvencedFilter" constructor="AdvencedFilter" version="1.0.0"
+  <control namespace="AdvencedFilter" constructor="AdvencedFilter" version="1.0.1"
     display-name-key="AdvencedFilter" description-key="AdvencedFilter description"
     control-type="virtual">
     <!--external-service-usage

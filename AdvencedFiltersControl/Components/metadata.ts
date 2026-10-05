@@ -105,7 +105,7 @@ function getFields(attributes: RawAttributeMetadata[]): FilterField[] {
             return {
                 logicalName,
                 displayName,
-                type: attribute.AttributeType ?? 'String',
+                type: attribute.AttributeTypeName?.Value ?? attribute.AttributeType ?? 'String',
                 targets: attribute.Targets ?? [],
                 dateFormat: attribute.Format,
                 options

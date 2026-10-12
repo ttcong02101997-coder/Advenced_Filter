@@ -23,6 +23,8 @@ export interface RelatedEntityOption {
 
 interface RawAttributeMetadata {
     LogicalName?: string
+    AttributeOf?: string
+    attributeOf?: string
     AttributeType?: string
     AttributeTypeName?: { Value?: string }
     DisplayName?: {
@@ -71,10 +73,12 @@ interface RawEntityMetadata {
     entityPluralName?: string
     primaryIdAttribute?: string
     PrimaryIdAttribute?: string
+    Attributes?: RawAttributeMetadata[]
 }
 
-function getFields(attributes: RawAttributeMetadata[]): FilterField[] {
+function getFields(attributes: RawAttributeMetadata[], primaryIdAttribute: string): FilterField[] {
     return attributes
+        .filter((attribute) => !attribute.AttributeOf && !attribute.attributeOf)
         .map((attribute) => {
             const logicalName = attribute.LogicalName ?? ''
             const displayName = attribute.DisplayName?.UserLocalizedLabel?.Label
@@ -111,20 +115,25 @@ function getFields(attributes: RawAttributeMetadata[]): FilterField[] {
                 options
             }
         })
-        .filter((field) => Boolean(field.logicalName) && !field.logicalName.toLowerCase().endsWith('name'))
+        .filter((field) => (
+            Boolean(field.logicalName)
+            && field.logicalName.toLowerCase() !== primaryIdAttribute.toLowerCase()
+        ))
         .sort((left, right) => left.displayName.localeCompare(right.displayName))
 }
 
 export async function loadEntityFields(entityName: string): Promise<FilterField[]> {
-    return getFields(await getAllAttributes(entityName))
+    const metadata = await getAllAttributes(entityName)
+    return getFields(metadata.attributes, metadata.primaryIdAttribute)
 }
 
 export async function loadEntityFilterMetadata(
     context: PcfContext,
     entityName: string
 ): Promise<{ fields: FilterField[]; relatedEntities: RelatedEntityOption[] }> {
-    const attributes = await getAllAttributes(entityName)
-    const fields = getFields(attributes)
+    const entityMetadata = await getAllAttributes(entityName)
+    const attributes = entityMetadata.attributes
+    const fields = getFields(attributes, entityMetadata.primaryIdAttribute)
     const lookupRelationships = attributes.flatMap((attribute) => (
         (attribute.Targets ?? []).map((logicalName) => ({
             logicalName,
@@ -187,7 +196,7 @@ export async function loadEntityFilterMetadata(
 
 async function getAllAttributes(
     entityName: string
-): Promise<RawAttributeMetadata[]> {
+): Promise<{ attributes: RawAttributeMetadata[]; primaryIdAttribute: string }> {
     const clientUrl = window.location.origin;
     const escapedEntityName = entityName.replace(/'/g, "''")
 
@@ -210,14 +219,17 @@ async function getAllAttributes(
         );
     }
 
-    const metadata = await response.json();
+    const metadata = await response.json() as RawEntityMetadata
 
     const attributes: RawAttributeMetadata[] = metadata.Attributes ?? []
     await Promise.all([
         loadChoiceOptions(entityName, attributes),
         loadLookupTargets(entityName, attributes)
     ])
-    return attributes
+    return {
+        attributes,
+        primaryIdAttribute: metadata.PrimaryIdAttribute ?? metadata.primaryIdAttribute ?? ''
+    }
 }
 
 async function loadLookupTargets(

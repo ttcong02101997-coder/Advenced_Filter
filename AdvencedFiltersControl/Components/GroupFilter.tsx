@@ -16,11 +16,13 @@ interface FilterGroupProps {
     onRemove?: () => void
     relatedEntities: RelatedEntityOption[]
     isRelatedContext?: boolean
+    hideOperator?: boolean
 }
 
-function FilterGroup({ context, depth = 0, entityName, fields, isRoot = false, model, onChange, onRemove, relatedEntities, isRelatedContext = false }: FilterGroupProps) {
+function FilterGroup({ context, depth = 0, entityName, fields, isRoot = false, model, onChange, onRemove, relatedEntities, isRelatedContext = false, hideOperator = false }: FilterGroupProps) {
     const nextItemId = React.useRef(1)
     const highestItemId = model.items.reduce((highest, item) => Math.max(highest, item.id), 0)
+    const canAddRelatedEntity = isRoot || (isRelatedContext && depth === 1)
     if (nextItemId.current <= highestItemId) nextItemId.current = highestItemId + 1
 
     const addItem = (kind: 'row' | 'group' | 'related') => {
@@ -67,7 +69,7 @@ function FilterGroup({ context, depth = 0, entityName, fields, isRoot = false, m
                 fontWeight: 600
             }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                    {!isRelatedContext && (
+                    {!hideOperator && (
                         <Dropdown
                             value={model.operator.toUpperCase()}
                             selectedOptions={[model.operator]}
@@ -80,11 +82,6 @@ function FilterGroup({ context, depth = 0, entityName, fields, isRoot = false, m
                             <Option value="and">AND</Option>
                             <Option value="or">OR</Option>
                         </Dropdown>
-                    )}
-                    {!isRoot && (
-                        <span style={{ color: "#6b7280", fontSize: 10, fontWeight: 600, letterSpacing: "0.06em" }}>
-                            GROUP
-                        </span>
                     )}
                 </div>
                 <span>Field</span>
@@ -158,7 +155,9 @@ function FilterGroup({ context, depth = 0, entityName, fields, isRoot = false, m
                         <MenuList>
                             <MenuItem onClick={() => addItem('row')}>Add row</MenuItem>
                             <MenuItem onClick={() => addItem('group')}>Add group</MenuItem>
-                            <MenuItem disabled={!isRoot && !isRelatedContext} onClick={() => addItem('related')}>Add related entity</MenuItem>
+                            {canAddRelatedEntity && (
+                                <MenuItem onClick={() => addItem('related')}>Add related entity</MenuItem>
+                            )}
                         </MenuList>
                     </MenuPopover>
                 </Menu>
@@ -331,6 +330,7 @@ function RelatedEntity({ context, model, onChange, onRemove, relatedEntities }: 
                         onChange={(group) => onChange({ ...model, group })}
                         relatedEntities={nestedRelatedEntities}
                         isRelatedContext
+                        hideOperator
                     />
                 </div>
             )}
